@@ -1,0 +1,375 @@
+<script>
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// classRandomGen is a random number generator modified to scramble an array.
+// It is adapted to Javascript from Pascal of the program ran3 in:
+//         Press WH, Flannery BP,Teukolsky SA, Vetterling WT (1994).
+//         Numerical recipes in Pascal Ed. 1, IBSN 0-521-37516-9.  p.221
+//
+function ClassRandomGen()  
+{
+// Original Ran3 program
+//
+    var idum;
+    var Ran3Inext;
+    var Ran3Inextp;  
+    var Ran3Ma;    
+
+// SowSeed primes the generator with random seed
+    this.SowSeed = function(seed)
+    { 
+      if(seed==0)seed = Math.round(Math.random() * 10000) + 1;
+      seed = Math.abs(seed); 
+      idum = -seed;  
+      Ran3Ma = [];
+    }
+
+// RRandom create a random real number between 0 and 1
+    function RRandom()
+    {   
+	mbig = 1000000000;  
+	mseed=161803398;  
+	mz=0;  
+	fac=1.0e-9;
+	if(idum < 0)
+	{
+	   mj = mseed+idum;
+	   if(mj >= 0.0){mj = mj-mbig*Math.floor(mj/mbig); }
+	   else {mj = mbig-Math.abs(mj)+mbig*Math.floor(Math.abs(mj)/mbig); }
+	   mj = mj % mbig;   
+	   Ran3Ma[55] = mj;
+	   mk = 1;
+	   for(var i=1;i<=54;i++)
+	   {
+	      var ii = 21*i % 55;
+	      Ran3Ma[ii] = mk;
+	      mk = mj-mk;
+	      if(mk < mz) mk = mk+mbig;
+	      mj = Ran3Ma[ii];
+	   }
+	   for(var k=1;k<=4;k++)for(var i=1;i<=55;i++)
+	   {
+	      Ran3Ma[i] = Ran3Ma[i]-Ran3Ma[1+((i+30) % 55)];
+	      if(Ran3Ma[i] < mz) Ran3Ma[i] = Ran3Ma[i]+mbig;
+	   }
+	   Ran3Inext = 0;
+	   Ran3Inextp = 31;
+	   idum = 1;
+	}
+	Ran3Inext = Ran3Inext+1;
+	if(Ran3Inext == 56) Ran3Inext = 1;
+	Ran3Inextp = Ran3Inextp+1;
+	if(Ran3Inextp == 56) Ran3Inextp = 1;
+	mj = Ran3Ma[Ran3Inext]-Ran3Ma[Ran3Inextp];
+	if(mj < mz) mj = mj+mbig;
+	Ran3Ma[Ran3Inext] = mj;
+	return mj*fac;
+    }
+// original Ran3 ends
+ 
+// Additional functions used to shuffle arrays
+    
+// NextIntegerValue generate integers after the generator is seeded
+    this.NextIntegerValue = function(minv,diff) // min=minimum value
+    {                                           // diff=range 
+        var v = Math.floor(RRandom() * diff + minv);
+        return v;
+    }
+// ShuffleArray takes an existing array and shuffle it using random integers
+    this.ShuffleArray = function(inputAr)   
+    {  
+       var maxV = 65536;       // maxV: 65536 for 16 bit integers
+       var n = inputAr.length;
+       var outputAr = [];
+       var tmpAr = [];
+       for(var i=0;i<n;i++)   // create array of random numbers 
+          tmpAr.push(this.NextIntegerValue(0,maxV));  
+       for(var i=0;i<n;i++)   // re-arrange ArIn in the order of magnitiude of tmpAr
+       {  
+          var idx = tmpAr.indexOf(Math.max(...tmpAr)); // index of max value
+          outputAr.push(inputAr[idx]);                    // shuffle by index
+          tmpAr[idx] = -1;                             // change max val to -1
+       }
+       return outputAr;
+    }
+}  // end classRandomGen
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//               End ClassRandomGen                                                                  //
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+</script>
+
+<script>
+<!--
+
+//
+// ClassRC4 is the class that performs RC4 encription.  All functions except
+// Adapted from farhadi / rc4.js in Instantly share code, notes, and snippets.
+//              https://gist.github.com/farhadi/2185197
+// Created January 3rd, 2021
+// The two external functions are:
+//
+
+function ClassRC4()     // class begins
+{
+// clas variables
+  this.sAr;                 // the S array for rc4
+  var ii,jj;                // indeces for RC4
+  var numberOfCycles = 1;   // number of cycles for reshuffling. 
+                            // More cycles = more secure but takes longer
+                            // default set at 1.  Programmer can set this value
+  
+// MakeSArray shuffles the array with key array in number of cycles
+  this.ShuffleSArray = function(keyAr)
+  {  
+     var len = keyAr.length;           // length of keyAr
+     var lengthOfCycle = 256;          // set length to sAr at 256
+     if(len>256) lengthOfCycle = len;  // change to len if len greater
+     // start shuffling Modified from standard algorithm to cater to 
+     // key array of any length
+     var j = 0;            
+     for(var n=0;n<numberOfCycles;n++)
+     {
+        for(var i = 0;i<lengthOfCycle;i++) 
+        {
+          si = i%256;               // index of S array
+          ki = i%len;               // index of key array
+          j = (j + this.sAr[si] + keyAr[ki]) % 256;
+          var x = this.sAr[si];
+          this.sAr[si] = this.sAr[j];
+          this.sAr[j] = x;
+        }
+     }
+  }
+
+// MakeSArray creates the S array assuming the number of passwords <= 256
+  this.MakeSArray = function(password)
+  {  
+     // set initial S array [0,1,2,3,...255]
+     this.sAr = [];           
+     for(var i=0;i<256;i++)this.sAr.push(i); 
+     
+     // convert password to key array of bytes        
+     var keyAr = [];         
+     for(var i=0;i<password.length;i++) keyAr.push(password.charCodeAt(i));
+
+     // shuffle s array
+     this.ShuffleSArray(keyAr);   
+     ii = 0;               // set indeces to 0      
+     jj = 0;
+  }
+
+// GetNextCipher uses the Pseudo-random generation algorithm (PRGA) 
+// to access the S array for the encryption code, and swapping the values around
+  this.GetNextCipher = function()
+  {
+     ii = (ii + 1) % 256;
+     jj = (jj + this.sAr[ii]) % 256;
+     var tmp = this.sAr[ii];
+     this.sAr[ii] = this.sAr[jj];
+     this.sAr[jj] = tmp;
+     tmp = (this.sAr[ii] + this.sAr[jj]) % 256;
+     return this.sAr[tmp];
+  } 
+
+// DecToHex is an utility to transform decimal number to hex string, 
+// and enforces the number of characters in the hex string
+  this.DecToHex = function(i,c)   // i=integer, c=number of characters
+  {
+     var h = i.toString(16);         
+     while(h.length<c) h = "0" + h;
+     return h;
+  }
+
+// Encrypt encrypts plainText using password
+  this.Encrypt = function(plainText, password)
+  {   
+     this.MakeSArray(password);              // creates the S array and set ii
+     var cipherText = "";
+     for(var i=0;i<plainText.length;i++) 
+     {
+         var a = plainText.charCodeAt(i);   // character -> byte
+         var e = a ^ this.GetNextCipher();  // encrypted byte
+         cipherText += this.DecToHex(e,2);  // byte -> 2 chr hex, append to cipherText
+     }
+     return cipherText;
+  }
+
+// Decipher deciphers cipherText with password
+  this.Decipher = function(cipherText, password)
+  {  
+     this.MakeSArray(password);                           // creates the S array and set ii
+     var plainText = "";
+     for(var i=0;i<cipherText.length; i+=2)               // takes consecutive 2 chr hex
+     {
+        var e = parseInt(cipherText.substring(i,i+2),16); // hex -> byte
+        var a = e ^ this.GetNextCipher();                 // decipher byte
+        plainText += String.fromCharCode(a);              // byte ->chr, add to plainText
+     }
+     return plainText;
+  }
+} // end class ClassRC4Mod
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//                       End of ROC4: Standard algorithm for RC4 encryption                          //
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+</script>
+
+<script>
+
+// ROCMod: A modified algorithm for RC4 encryption
+// by: Allan Chang from StatsToDo.  Created January 2021
+// This uses the original RC4, and in adddition includes the following
+//     - Create a random integer to scramble the values 
+//     - Create a hash table to hash encryption
+
+// ClassRC4Mod is the class encapsulating the modified RC4 program
+function ClassRC4Mod()     // class begins
+{
+  // class variables
+  var rc4;           // ClassRC4 the original RC4
+  var hAr,uAr;       // hash and unhash table
+  var plainText, cipherText;
+  
+// ResizeArray resized an array of numbers (in this pgm bytes) to a new size
+  ResizeArray = function(ar,newSize)
+  {    
+     var oldSize = ar.length;
+     if(oldSize==newSize) return ar;   // array right size, returned unchanged
+     // array too short, append array by combination of existing values 
+     if(oldSize<newSize)               
+     {
+        var i = 1;
+        while(ar.length<newSize) 
+        {
+           ar.push(ar[i] ^ ((ar[i-1] * i) % 256));
+           i++;
+        }
+        return ar                      // array lengthened to newSize
+     }
+     // array too long, prograssively shorten by combining existing values
+     while(ar.length>newSize)              // repeating until the right size 
+     {                                 
+        var tmpAr = ar.slice();           // copy to tmpAr
+        ar = [];
+        for(var i=1;i<tmpAr.length;i++)  // combine numbers and shrinks by 1 each time
+              ar.push(tmpAr[i] ^ ((tmpAr[i-1] * i) % 256));
+     }
+     return ar;                        // array shrunk to newSize
+  }
+
+// Obfuscate alters the values of the inputarray inputAr using a text string (in this pgm the password)
+// the obfuscated array can be unobfuscated by running the same function
+  function Obfuscate(obfStr, inputAr)        // obfStr = obfuscating text string
+  {                                          // inputAr = array of numbers (bytes) to be obfuscated
+     var obfAr = [];                         // obfStr to bytes in array obfAr
+     for(var i=0;i<obfStr.length;i++) obfAr.push(obfStr.charCodeAt(i));
+     var n = inputAr.length;                 // length of inputAr         
+     obfAr = ResizeArray(obfAr,n);       // stretch or shrink obfAr to same size as inputAr
+     var resAr = [];                         // obfuscating by xor the two arrays
+     for(var i=0;i<n;i++)resAr.push(obfAr[i] ^ inputAr[i]);
+     return resAr;                           // obfuscated array
+  }
+
+// make hash table and resuffles rc4 S array
+  function MakeHashAndResuffleRC4(randomInt)
+  {
+     var rg = new ClassRandomGen();  // initialize random number generator
+     // make hash
+     hAr = rc4.sAr.slice();          // copy RC4 S array
+     rg.SowSeed(randomInt);          // random seeding with random integer
+     hAr = rg.ShuffleArray(hAr);     // shuffle rc4 S array to form hash array
+     uAr = [];                       // mirror image unhash array
+     for(var i=0;i<256;i++)uAr[hAr[i]] = i;
+     
+     // reshuffle rc4 S array with an array of 256 random bytes
+     var keyAr = [];
+     for(var i=0;i<256;i++)          // create key array of 256 random bytes
+         keyAr.push(rg.NextIntegerValue(0,256));
+     rc4.ShuffleSArray(keyAr);     // re-shuffles rc4 S array      
+  }
+
+// SetUp activates the standard rc4 and creates the S array with password 
+  function SetUp(password)
+  {
+     var cipherText = "";
+     rc4 = new ClassRC4();
+     rc4.MakeSArray(password);
+  }
+
+// Encryption encrypts plain text using password  
+  this.Encrypt = function(plainText, password)
+  {
+     SetUp(password);        // initialize standard rc4 and set S array
+     cipherText = "" ;
+
+     // Create random scrambler
+     var sByteAr = [];                                   // create array of 2 random bytes
+     for(var i=0;i<2;i++)
+       sByteAr.push(Math.floor(Math.random()*256));
+     var randomInt = sByteAr[0] * 256 + sByteAr[1];      // combine 2 bytes to random 16 bit integer;
+     sByte = sByteAr[0] ^ sByteAr[1];                    // xor the two bytes to create scrambler byte   
+
+     // scrambler disguised and stored in first 4 hex of cipherText
+     sByteAr = Obfuscate(password, sByteAr);             // obfuscate 2 byte in array for storage                 
+     for(var i=0;i<2;i++)                                // first 2 bytes (4 hex chrs) are obfuscated x bytes
+          cipherText += rc4.DecToHex(sByteAr[i],2);
+
+     MakeHashAndResuffleRC4(randomInt);                     // make hash table and resuffles rc4 S array
+
+     // encryption begins
+     for(i=0;i<plainText.length;i++)
+     {
+         var ascii = plainText.charCodeAt(i);          // character to ascii
+         var scrambledByte = sByte ^ ascii;            // scramble to sByte
+         var hByte = hAr[scrambledByte];               // hash to hByte
+         var eByte = hByte ^ rc4.GetNextCipher();      // encrypt to eByte
+         cipherText += rc4.DecToHex(eByte,2);          // adds to cipherStr as 2 chr hex string
+         sByte = hByte;                                // pass hByte on as scrambler for next ascii
+     }
+     return cipherText;
+  }
+
+// Decipher is a public function called from outside the class to decipher cipherText with password
+  this.Decipher = function(cipherText, password)
+  {
+     SetUp(password);                               // initialize standard rc4
+     
+     // Retrieve first 4 hex chr (2 bytes) from cipherStr
+     var sByteAr = [];                              // retrieve the 2 byte scrambler
+     for(var i=0;i<2;i++)                           // get first 2 bytes (4 hex chrs) obfuscated bytes
+     {
+        var j = i * 2;
+        var hex2 = cipherText.substring(j,j+2);     // byte in hex
+        sByteAr[i] = parseInt(hex2,16);             // hex ->encrypted byte
+     }
+     sByteAr = Obfuscate(password, sByteAr);        // de-obfuscate 2 byte array using password
+     
+     // re-creates random integer and random byte
+     var randomInt = sByteAr[0] * 256 + sByteAr[1]; // re-create random integer from 2 bytes
+     sByte = sByteAr[0] ^ sByteAr[1];               // re-creates random scrambler sByte
+
+     MakeHashAndResuffleRC4(randomInt);                // make hash table and resuffles rc4 S array
+     
+     // Deciphering
+     plainText = "";                                // decipher begins
+     for(var i=4;i<cipherText.length;i+=2)          // every two hex chrs after the first 4
+     {
+         var hex2 = cipherText.substring(i,i+2);    // next 2 hex chrs
+         var eByte = parseInt(hex2,16);             // hex to encrypted byte
+         var hByte = eByte ^ rc4.GetNextCipher();   // decipher to hashed byte 
+         var scrambledByte = uAr[hByte];            // unhashed to scrambled byte
+         var ascii = sByte ^ scrambledByte;         // unscramble  to ascii
+         sByte = hByte;                             // pass hByte to sByte for next decipher
+         plainText += String.fromCharCode(ascii);   // transform ascii to char and add to plainText
+     }
+     return plainText;
+  }
+} // end class ClassRC4Mod
+
+//                       End of ROCMod: A modified algorithm for RC4 encryption
+// by: Allan Chang from StatsToDo.  Created January 2021
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+</script>
