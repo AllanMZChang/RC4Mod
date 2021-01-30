@@ -1,6 +1,6 @@
 The program RC3Mod is a modification of the original RC4 program, in an attempt to overcome its vulnerability.
-The principle of th modification is to insert a random scrambler into the algorithm, which modifies the S array and creates a hash table to transform the plain text before it is encryptd.  This will result in a different cipher text being produced with each encryption, even if the password and the plain text remains the same.
-The program is divided into 3 classes.
+<p>The principle of th modification is to insert a random scrambler into the algorithm, which modifies the S array and creates a hash table to transform the plain text before it is encryptd.  This will result in a different cipher text being produced with each encryption, even if the password and the plain text remains the same.
+<p>The program is divided into 3 classes.
 The first is ClassRndomGen, a portable random number generator Ran3, copied from the textbook Numerical Recipes (see reference).  The class produces the same results from the same random seed, independent of the operating system of the computers used.  The program is modified so it can scramble an array in a deterministic manner according the the random seed used.
 The second is ClassRC4, which is really the originsl standard RC4 algorithm.  I copied it from https://gist.github.com/farhadi/2185197, but modified it so it can be incorporated into the new program.  The modification separates the preparation of the S array from its use, allowing further changes to the S array from an external source, and allowing the S array to be modified by an array of bytes of any length.
 The third is ClassRC4Mod, which is the modified part but uses the other two classes in the following manner
